@@ -97,6 +97,25 @@ const App: React.FC = () => {
       setUser(JSON.parse(savedUser));
       setView('main');
     }
+
+    // Check for shared conversation in URL
+    const params = new URLSearchParams(window.location.search);
+    const sharedChat = params.get('share');
+    if (sharedChat) {
+      try {
+        const jsonStr = decodeURIComponent(escape(atob(sharedChat)));
+        const sharedMessages = JSON.parse(jsonStr).map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp)
+        }));
+        setMessages(sharedMessages);
+        setView('main');
+        // Clean URL without reloading
+        window.history.replaceState({}, '', window.location.pathname);
+      } catch (err) {
+        console.error("Failed to parse shared chat", err);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -178,7 +197,6 @@ const App: React.FC = () => {
     setSelectedImage(null); 
     setIsLoading(true);
 
-    // Create an empty placeholder message for AI
     const aiMessageId = (Date.now() + 1).toString();
     const aiMessagePlaceholder: Message = { 
       id: aiMessageId, 
@@ -196,7 +214,7 @@ const App: React.FC = () => {
         currentInput, 
         history, 
         (chunk) => {
-          setIsLoading(false); // Stop loading pulse as soon as first chunk arrives
+          setIsLoading(false);
           setMessages(prev => prev.map(msg => 
             msg.id === aiMessageId 
               ? { ...msg, content: msg.content + chunk } 
@@ -231,31 +249,65 @@ const App: React.FC = () => {
     }
   };
 
-  const handleShare = async () => {
+  const handleShareApp = async () => {
     const url = window.location.origin;
     const shareData = {
       title: 'FixPro - AI Maintenance Expert',
       text: UI_STRINGS[lang].tagline,
       url: url,
     };
-
-    const copyFallback = () => {
-      try {
-        navigator.clipboard.writeText(url);
-        alert(lang === 'ar' ? 'تم نسخ الرابط!' : 'Link copied!');
-      } catch (err) {
-        console.error('Copy failed', err);
-      }
-    };
-
-    if (navigator.share) {
-      try {
+    try {
+      if (navigator.share) {
         await navigator.share(shareData);
-      } catch (err) {
-        copyFallback();
+      } else {
+        navigator.clipboard.writeText(url);
+        alert(UI_STRINGS[lang].linkCopied);
       }
-    } else {
-      copyFallback();
+    } catch (err) {
+      console.error('Share failed', err);
+    }
+  };
+
+  const handleShareChat = async () => {
+    if (messages.length === 0) return;
+    try {
+      // Simple serialization of the chat history
+      const dataToShare = JSON.stringify(messages);
+      // Encode unicode string to base64 safely
+      const encoded = btoa(unescape(encodeURIComponent(dataToShare)));
+      const url = `${window.location.origin}?share=${encoded}`;
+      
+      // Safety check for URL length (browsers usually support ~2000 chars, some more)
+      // If it's too long, we might just share the text.
+      if (url.length > 8000) {
+        // Fallback: Share just text content
+        const textContent = messages.map(m => `${m.role === 'user' ? 'User' : 'FixPro'}: ${m.content}`).join('\n\n');
+        if (navigator.share) {
+           await navigator.share({
+             title: 'FixPro Diagnosis',
+             text: textContent.substring(0, 10000) // Truncate if massive
+           });
+        } else {
+           navigator.clipboard.writeText(textContent);
+           alert(UI_STRINGS[lang].linkCopied);
+        }
+        return;
+      }
+
+      const shareData = {
+        title: 'FixPro Diagnosis',
+        text: 'Check out this repair advice from FixPro!',
+        url: url,
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert(UI_STRINGS[lang].linkCopied);
+      }
+    } catch (e) {
+      console.error("Share chat failed", e);
     }
   };
 
@@ -349,7 +401,7 @@ const App: React.FC = () => {
               </section>
 
               <button 
-                onClick={handleShare}
+                onClick={handleShareApp}
                 className={`w-full py-5 flex items-center justify-center gap-3 rounded-2xl border-2 transition-all font-black text-lg ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-white hover:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-blue-500 shadow-sm'}`}
               >
                 <ShareIcon /> {UI_STRINGS[lang].shareApp}
@@ -442,6 +494,12 @@ const App: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-4">
+                {messages.length > 0 && (
+                  <button onClick={handleShareChat} className={`hidden md:flex items-center gap-2 py-2 px-4 rounded-xl text-sm font-bold transition-all ${theme === 'dark' ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
+                    <ShareIcon />
+                    <span>{UI_STRINGS[lang].shareDiagnosis}</span>
+                  </button>
+                )}
                 <button onClick={() => setShowSettings(true)} className={`p-3 rounded-2xl transition-all ${theme === 'dark' ? 'hover:bg-slate-800 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-600 hover:text-blue-600'}`}>
                   <SettingsIcon />
                 </button>
@@ -500,6 +558,20 @@ const App: React.FC = () => {
                         ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-tr-none border-transparent' 
                         : (theme === 'dark' ? 'bg-slate-900/80 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-800') + ' rounded-tl-none backdrop-blur-lg'
                     }`}>
+                      {/* Message specific share button */}
+                      {msg.role === 'model' && msg.content !== '' && (
+                         <button 
+                           onClick={() => {
+                             navigator.clipboard.writeText(msg.content);
+                             alert(UI_STRINGS[lang].linkCopied || "Copied!");
+                           }}
+                           className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-blue-500"
+                           title="Copy Text"
+                         >
+                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                         </button>
+                      )}
+                      
                       <div className="whitespace-pre-wrap leading-relaxed text-base md:text-lg">
                         {msg.content === '' ? (
                           <div className="flex gap-2 py-2">

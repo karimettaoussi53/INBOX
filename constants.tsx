@@ -70,6 +70,8 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     errorQuota: 'تم تجاوز الحد المسموح، يرجى المحاولة لاحقاً.',
     errorGeneral: 'تعذر الاتصال بالخادم الذكي.',
     shareApp: 'مشاركة التطبيق',
+    shareDiagnosis: 'مشاركة التشخيص',
+    linkCopied: 'تم نسخ رابط المحادثة!',
     analyzing: 'جاري التحليل التقني...'
   },
   en: {
@@ -105,6 +107,8 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     errorQuota: 'Quota exceeded, please try later.',
     errorGeneral: 'AI Connection failed.',
     shareApp: 'Share App',
+    shareDiagnosis: 'Share Diagnosis',
+    linkCopied: 'Chat link copied!',
     analyzing: 'Technical analysis in progress...'
   },
   fr: {
@@ -140,6 +144,8 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     errorQuota: 'Quota dépassé, réessayez plus tard.',
     errorGeneral: 'Échec de la connexion IA.',
     shareApp: 'Partager',
+    shareDiagnosis: 'Partager le diagnostic',
+    linkCopied: 'Lien copié !',
     analyzing: 'Analyse technique en cours...'
   },
   ber: {
@@ -175,6 +181,8 @@ export const UI_STRINGS: Record<Language, Record<string, string>> = {
     errorQuota: 'ⵜⵓⴳⵏⴰ ⵏ ⵓⵣⴷⴰⵢ: ⴳⴳⵓⵏ ⴽرا ⵏ ⵜⵉⴽⴽﻠⵜ.',
     errorGeneral: 'ⵜⵓⴳⵏⴰ ⵏ ⵓⵣⴷⴰⵢ ⴷ IA',
     shareApp: 'ⴰⵣⵏ ⵜⴰⵎⵙⵙⵓⴳⵓⵔⵜ',
+    shareDiagnosis: 'ⴱⴹⵓ ⴰⵙⴼⵙⵢ',
+    linkCopied: 'ⵜⴰⵙⵖⵓⵏⵜ ⵜⴻⵜⵜⵓⴽⵙ!',
     analyzing: 'ⴰⵙⵍⵍⴻⵢ ⴰⵜⵉⴽⵏⵉⴽ...'
   }
 };

@@ -14,7 +14,10 @@ This guide provides step-by-step instructions on how to deploy the FixPro applic
 Google Cloud Run is an excellent choice for this app as it handles scaling and only charges when the app is in use.
 
 ### Step A: Verify the Dockerfile
-A `Dockerfile` has been created in the root directory. It uses `nginx:alpine` to serve your static files and is configured to listen on port **8080**, which is the default requirement for Cloud Run.
+The project includes a `Dockerfile` configured for Cloud Run:
+- Uses `nginx:alpine` to serve static files.
+- Configured to listen on port **8080** (Cloud Run default).
+- Includes a startup script that automatically injects your `API_KEY` environment variable into the browser application securely.
 
 ### Step B: Build and Push to Container Registry
 Open your terminal and run the following commands:
@@ -40,7 +43,7 @@ gcloud run deploy fixpro \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars="API_KEY=your_gemini_api_key_here"
+  --set-env-vars="API_KEY=your_actual_api_key_here"
 ```
 
 Once deployed, Google Cloud Run will provide you with a secure HTTPS URL (e.g., `https://fixpro-xyz-uc.a.run.app`).
@@ -70,27 +73,24 @@ Vercel is the fastest way to deploy this frontend application globally.
 2. Click **"Add New"** > **"Project"**.
 3. Select your **fixpro** repository from the list.
 4. **Configure Project**:
-   - **Framework Preset**: Select "Other" (since we are using raw HTML/TSX with ESM).
-   - **Build Command**: Leave empty.
-   - **Output Directory**: Leave empty (or set to `.` if asked).
+   - **Framework Preset**: Select "Other" (or Vite if you are using a build step).
+   - **Output Directory**: `.` (Current directory) or `dist` if you are building.
 5. **Environment Variables** (Crucial):
    - Expand the "Environment Variables" section.
    - Key: `API_KEY`
    - Value: `Your_Actual_Gemini_API_Key_String`
+   - *Note*: Since this is a client-side app, you may need to ensure Vercel exposes this to the client (often by prefixing with `NEXT_PUBLIC_` or `VITE_` if using a framework, or manually handling injection as described below).
 6. Click **Deploy**.
 
 ---
 
-## 4. Technical Architecture Note
-This application utilizes a modern "no-build" architecture for development, loading React and dependencies directly via `esm.sh` in the browser.
+## 4. Technical Notes
 
-- **Cloud Run**: Uses Nginx to serve the static files.
-- **Vercel**: Serves the static files from the edge network.
+### Environment Variables
+This application uses `process.env.API_KEY`. 
+- **Docker/Cloud Run**: The included `Dockerfile` automatically injects this value from the server environment into the HTML page at runtime.
+- **Vercel/Static**: You may need to update the code to use a hardcoded key or a specific build plugin if `process` is not defined in your environment.
 
-**Security Notice**: The `API_KEY` is currently injected into the client-side process. For high-security enterprise deployments, it is recommended to implement a lightweight proxy server (using Node.js or Cloud Functions) to handle the Gemini API requests and keep the key hidden from the browser.
-
----
-
-## 5. Troubleshooting
-- **Error 503 / Quota Exceeded**: The app includes automatic retry logic. If errors persist, check your Google Cloud billing or quota limits.
-- **Camera/Mic Permissions**: Ensure your deployed site uses **HTTPS**. Browsers block camera access on insecure HTTP connections (except localhost). Cloud Run and Vercel provide HTTPS by default.
+### Production Readiness
+- **HTTPS**: Camera access requires HTTPS. Both Cloud Run and Vercel provide this automatically.
+- **Quota**: If you encounter 503/429 errors, the app has built-in retry logic, but ensure your Gemini API quota is sufficient.
